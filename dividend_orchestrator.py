@@ -10,6 +10,8 @@ from scripts.subfolder.dividend_processor import dividend_probability_calculator
 from scripts.subfolder.load_dividend_info import call_dividend_api
 #==================DAG ARGUMENTS==============================
 
+
+
 args = {
     'owner': 'airflow',
     'depends_on_past': False,
