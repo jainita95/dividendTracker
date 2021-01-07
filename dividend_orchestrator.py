@@ -1,4 +1,4 @@
-from airflow.operators.python_operator import PythonOperator,BranchPythonOperator
+from airflow.operators.python_operator import PythonOperator,BranchPythonOperator,PythonVirtualOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.bash_operator  import BashOperator
 from airflow.hooks.base_hook import BaseHook
