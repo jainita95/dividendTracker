@@ -1,35 +1,36 @@
-from airflow.operators.python_operator import PythonOperator
-from airflow.operators.bash_operator  import BashOperator
-from airflow.hooks.base_hook import BaseHook
-from airflow.models import DAG
-from airflow.utils import dates
-from datetime import datetime, timedelta
-from google.cloud import bigquery
-from google.oauth2 import service_account
-import requests
-import json
-import pandas_gbq as pdgbq
-from datetime import date
-from datetime import datetime,timedelta
-import numpy as np
-import pandas as pd
-import json
-import os
-import time
-from airflow.models import Variable
-from urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
-from pandas.api.types import is_datetime64_any_dtype as is_datetime
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
-from string import Template
-from sendgrid.helpers.mail import *
-import base64
-import pickle
-
 def call_dividend_api():
+    from airflow.operators.python_operator import PythonOperator
+    from airflow.operators.bash_operator  import BashOperator
+    from airflow.hooks.base_hook import BaseHook
+    from airflow.models import DAG
+    from airflow.utils import dates
+    from datetime import datetime, timedelta
+    from google.cloud import bigquery
+    from google.oauth2 import service_account
+    import requests
+    import json
+    import pandas_gbq as pdgbq
+    from datetime import date
+    from datetime import datetime,timedelta
+    import numpy as np
+    import pandas as pd
+    import json
+    import os
+    import time
+    from airflow.models import Variable
+    from urllib3.util.retry import Retry
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+    from requests.adapters import HTTPAdapter
+    from pandas.api.types import is_datetime64_any_dtype as is_datetime
+    from sendgrid import SendGridAPIClient
+    from sendgrid.helpers.mail import Mail
+    from string import Template
+    from sendgrid.helpers.mail import *
+    import base64
+    import pickle
+
+
     credentials=service_account.Credentials.from_service_account_info(
            Variable.get("key",deserialize_json=True))
 
