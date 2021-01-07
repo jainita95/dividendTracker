@@ -1,4 +1,4 @@
-from airflow.operators.python_operator import PythonOperator,BranchPythonOperator,PythonVirtualOperator
+from airflow.operators.python_operator import PythonOperator,BranchPythonOperator,PythonVirtualenvOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.bash_operator  import BashOperator
 from airflow.hooks.base_hook import BaseHook
@@ -63,21 +63,21 @@ CheckCalculateProbability = BranchPythonOperator(
     dag=dag
 )
 #python3 /home/airflow/gcs/dags/test.py
-CallDividendApi = PythonVirtualOperator(
+CallDividendApi = PythonVirtualenvOperator(
     task_id='CallDividendApi',
     python_callable=call_dividend_api,
     requirements=['sendgrid==6.4.8'],
     trigger_rule='all_done',
     dag=dag
 )
-CsvLoad = PythonVirtualOperator(
+CsvLoad = PythonVirtualenvOperator(
     task_id='CsvLoad',
     python_callable=csv_load,
     requirements=['sendgrid==6.4.8'],
     trigger_rule='all_done',
     dag=dag
 )
-CalculateProbability = PythonVirtualOperator(
+CalculateProbability = PythonVirtualenvOperator(
     task_id='CalculateProbability',
     python_callable=calculate_probability,
     requirements=['sendgrid==6.4.8'],
