@@ -6,7 +6,7 @@ from airflow.models import DAG
 import datetime
 from datetime import datetime, timedelta
 from scripts.subfolder.update_csv_data_to_bq import csv_load 
-from scripts.subfolder.dividend_processor import dividend_probability_calculator 
+from scripts.subfolder.dividend_processor import calculate_probability 
 from scripts.subfolder.load_dividend_info import call_dividend_api
 #==================DAG ARGUMENTS==============================
 
@@ -63,21 +63,24 @@ CheckCalculateProbability = BranchPythonOperator(
     dag=dag
 )
 #python3 /home/airflow/gcs/dags/test.py
-CallDividendApi = PythonOperator(
+CallDividendApi = PythonVirtualOperator(
     task_id='CallDividendApi',
     python_callable=call_dividend_api,
+    requirements=['sendgrid==6.4.8'],
     trigger_rule='all_done',
     dag=dag
 )
-CsvLoad = PythonOperator(
+CsvLoad = PythonVirtualOperator(
     task_id='CsvLoad',
     python_callable=csv_load,
+    requirements=['sendgrid==6.4.8'],
     trigger_rule='all_done',
     dag=dag
 )
-CalculateProbability = PythonOperator(
+CalculateProbability = PythonVirtualOperator(
     task_id='CalculateProbability',
-    python_callable=dividend_probability_calculator,
+    python_callable=calculate_probability,
+    requirements=['sendgrid==6.4.8'],
     trigger_rule='all_done',
     dag=dag
 )
