@@ -7,7 +7,7 @@ import datetime
 from datetime import datetime, timedelta
 import sys
 import os
-sys.path.insert(0,os.path.join(os.getcwd(),'scripts/subfolder')))
+sys.path.insert(0,os.path.join(os.getcwd(),'scripts/subfolder'))
 from scripts.subfolder.update_csv_data_to_bq import csv_load 
 from scripts.subfolder.dividend_processor import calculate_probability 
 from scripts.subfolder.load_dividend_info import call_dividend_api
