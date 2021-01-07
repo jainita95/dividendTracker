@@ -1,33 +1,34 @@
-from airflow.operators.python_operator import PythonOperator
-from airflow.operators.bash_operator  import BashOperator
-from airflow.hooks.base_hook import BaseHook
-from airflow.models import DAG
-from airflow.utils import dates
-from datetime import datetime, timedelta, date
-from google.cloud import bigquery
-from google.oauth2 import service_account
-import json
-import pandas_gbq as pdgbq
-from datetime import date
-from datetime import datetime,timedelta
-import numpy as np
-import pandas as pd
-import json
-import os
-from airflow.models import Variable
-from urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
-from pandas.api.types import is_datetime64_any_dtype as is_datetime
-from google.cloud import storage
-import io
-import pathlib
-import numpy as np
-from pandas.io.json import json_normalize
-import tempfile
-
 def csv_load():
+    from airflow.operators.python_operator import PythonOperator
+    from airflow.operators.bash_operator  import BashOperator
+    from airflow.hooks.base_hook import BaseHook
+    from airflow.models import DAG
+    from airflow.utils import dates
+    from datetime import datetime, timedelta, date
+    from google.cloud import bigquery
+    from google.oauth2 import service_account
+    import json
+    import pandas_gbq as pdgbq
+    from datetime import date
+    from datetime import datetime,timedelta
+    import numpy as np
+    import pandas as pd
+    import json
+    import os
+    from airflow.models import Variable
+    from urllib3.util.retry import Retry
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+    from requests.adapters import HTTPAdapter
+    from pandas.api.types import is_datetime64_any_dtype as is_datetime
+    from google.cloud import storage
+    import io
+    import pathlib
+    import numpy as np
+    from pandas.io.json import json_normalize
+    import tempfile
+
+
     source_bucket = 'csv_triggered_dataflow'
     destination_bucket = 'csv_triggered_dataflow_processed'
     storage_client = storage.Client()
