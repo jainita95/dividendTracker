@@ -26,7 +26,7 @@ def call_dividend_api():
     from sendgrid import SendGridAPIClient
     from sendgrid.helpers.mail import Mail
     from string import Template
-    from sendgrid.helpers.mail import *
+    from sendgrid.helpers.mail import To,Attachment,FileContent,FileType,FileName,Disposition,ContentId
     import base64
     import pickle
 
