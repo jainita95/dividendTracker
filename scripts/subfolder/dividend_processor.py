@@ -20,7 +20,6 @@ from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-from file_to_gcs import ContentToGoogleCloudStorageOperator
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
