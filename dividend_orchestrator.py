@@ -76,14 +76,14 @@ CallDividendApi = PythonVirtualenvOperator(
 CsvLoad = PythonVirtualenvOperator(
     task_id='CsvLoad',
     python_callable=csv_load,
-    requirements=['sendgrid==6.4.8','apache-airflow','psycopg2'],
+    requirements=['sendgrid==6.4.8','apache-airflow','psycopg2','psycopg2-binary'],
     trigger_rule='all_done',
     dag=dag
 )
 CalculateProbability = PythonVirtualenvOperator(
     task_id='CalculateProbability',
     python_callable=calculate_probability,
-    requirements=['sendgrid==6.4.8','apache-airflow','psycopg2'],
+    requirements=['sendgrid==6.4.8','apache-airflow','psycopg2','psycopg2-binary'],
     trigger_rule='all_done',
     dag=dag
 )
