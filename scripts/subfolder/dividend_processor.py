@@ -291,7 +291,7 @@ def calculate_probability():
                 message.add_attachment(attachment)
                 try:
                     sg = SendGridAPIClient(Variable.get("sendgridapikey"))
-                    response = sg.send(message)
+                    #response = sg.send(message)
                     count_mails = count_mails + 1
                     #print(response.status_code)
                     #print(response.body)
