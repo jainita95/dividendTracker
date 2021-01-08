@@ -263,7 +263,7 @@ def calculate_probability():
                 df_contacts=json_normalize(df_contacts_temp_list[index[0]])
                 contacts = df_contacts.drop_duplicates(subset=['email'], keep = 'last')
                 html_string= None
-                with open('/home/airflow/gcs/dags/EmailTemplateUpcomingDividend.html', 'r') as f:
+                with open('/opt/bitnami/airflow/dags/git-github-com-jainita95-dividend-tracker-git/EmailTemplateUpcomingDividend.html', 'r') as f:
                     html_string = f.read()
                 html_string=html_string.format(code=company_name,startDate=expected_start_date,endDate=expected_end_date,probability=math.ceil(probability*100))
                 name = []
@@ -278,7 +278,7 @@ def calculate_probability():
                                 to_emails=emails,
                                 subject = "Notice: An Upcoming Dividend Declaration cited for "+ company_name,
                                 html_content=html_string)
-                with open('/home/airflow/gcs/dags/hsbcLogo.png', 'rb') as f:
+                with open('/opt/bitnami/airflow/dags/git-github-com-jainita95-dividend-tracker-git/dags/hsbcLogo.png', 'rb') as f:
                     data = f.read()
                     f.close()
                 encoded = base64.b64encode(data).decode()    
