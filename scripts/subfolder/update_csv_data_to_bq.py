@@ -28,8 +28,7 @@ def csv_load():
     from pandas.io.json import json_normalize
     import tempfile
 
-
-        source_bucket = 'csv_triggered_dataflow'
+    source_bucket = 'csv_triggered_dataflow'
     destination_bucket = 'csv_triggered_dataflow_processed'
     storage_client = storage.Client()
     source_bucket = storage_client.bucket(source_bucket)
@@ -307,3 +306,6 @@ def csv_load():
             new_blob = source_bucket.copy_blob(source_blob, destination_bucket, file)
             # delete in old destination
             source_blob.delete()
+        
+        
+    
