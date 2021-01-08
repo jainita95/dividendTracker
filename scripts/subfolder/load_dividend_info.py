@@ -139,7 +139,7 @@ def call_dividend_api():
                         contacts =  dataframe["Contacts"][ind] 
 
                         html_string= None
-                        with open('/home/airflow/gcs/dags/EmailTemplateDividendDeclared.html', 'r') as f:
+                        with open('/opt/bitnami/airflow/dags/git-github-com-jainita95-dividend-tracker-git/EmailTemplateDividendDeclared.html', 'r') as f:
                             html_string = f.read()
                         html_string=html_string.format(code=dataframe.iloc[ind]['Ticker'],date=results[0]['PayDate'])   
                         name = []
@@ -152,7 +152,7 @@ def call_dividend_api():
                                 to_emails=emails,
                                 subject = "Urgent ! New Dividend Declared for "+ dataframe.iloc[ind]['Ticker'],
                                 html_content=html_string)
-                        with open('/home/airflow/gcs/dags/hsbcLogo.png', 'rb') as f:
+                        with open('/opt/bitnami/airflow/dags/git-github-com-jainita95-dividend-tracker-git/hsbcLogo.png', 'rb') as f:
                             data = f.read()
                             f.close()
                         encoded = base64.b64encode(data).decode()    
