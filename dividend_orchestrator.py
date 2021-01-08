@@ -85,7 +85,7 @@ CsvLoad = PythonVirtualenvOperator(
 CalculateProbability = PythonVirtualenvOperator(
     task_id='CalculateProbability',
     python_callable=calculate_probability,
-    requirements=['sendgrid==6.4.8','apache-airflow','psycopg2-binary','libpq-dev'],
+    requirements=['sendgrid==6.4.8','apache-airflow','libpq-dev','psycopg2-binary'],
     python_version='3',
     trigger_rule='all_done',
     dag=dag
