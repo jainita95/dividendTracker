@@ -29,7 +29,7 @@ def csv_load():
     import tempfile
 
 
-    source_bucket = 'csv_triggered_dataflow'
+        source_bucket = 'csv_triggered_dataflow'
     destination_bucket = 'csv_triggered_dataflow_processed'
     storage_client = storage.Client()
     source_bucket = storage_client.bucket(source_bucket)
@@ -61,7 +61,7 @@ def csv_load():
 
     project_id = 'hackathon-wpb'
     dataset_id = 'customer_relations'
-    table_id = 'customer_dividend_malaysia'
+    table_id = 'customer_dividend_malaysia_duplicate_test'
 
     client  = bigquery.Client(project = project_id)
     dataset  = client.dataset(dataset_id)
@@ -171,7 +171,11 @@ def csv_load():
                 Dividend['DeclarationYear'] = Dividend['DeclarationYear'].apply(str)
                 Dividend['DeclaratioMonth'] = Dividend['DeclaratioMonth'].apply(str)
                 Dividend['DeclarationDate'] = Dividend['DeclarationDate'].apply(str)
-                dataframe_bq.drop(dataframe_bq.loc[dataframe_bq['Ticker']==ticker].index, inplace=True)
+                dataframe_bq.loc[dataframe_bq['Ticker']==ticker, 'Dividend'] = pd.np.nan
+                dataframe_bq.loc[dataframe_bq['Ticker']==ticker, 'Dividend'] = dataframe_bq.apply(lambda x: Dividend, axis=1)
+                #json.loads(Dividend.to_json(orient="records"))
+                dataframe_bq.loc[dataframe_bq['Ticker']==ticker, 'RecentDeclarationDate'] = RecentDeclarationDate
+                dataframe_bq.loc[dataframe_bq['Ticker']==ticker, 'NextPayableDate'] = RecentDeclarationDate + timedelta(30)
                 #print(Dividend)
                 #print(RecentDeclarationDate)
             else:
@@ -190,7 +194,8 @@ def csv_load():
             #print(dataframe_csv_outward.loc[dataframe_csv_outward['Ticker'] == ticker])
         #dataframe_csv_outward.drop(['Calendar Date'], axis=1,inplace=True)
         #print(unique_outward_ticker)
-        dataframe_bq = dataframe_bq.append(unique_outward_ticker)
+        if(Dividend_bq.empty):
+            dataframe_bq = dataframe_bq.append(unique_outward_ticker)
         #print(dataframe_bq.loc[dataframe_bq['Ticker'] == 'NXPI'])
         #dataframe_bq.loc[dataframe_bq['Mic'] == outward_Mic, 'Contacts'] = Contacts
         #dataframe_bq = dataframe_bq.head()
@@ -247,7 +252,11 @@ def csv_load():
                 Dividend['DeclarationYear'] = Dividend['DeclarationYear'].apply(str)
                 Dividend['DeclaratioMonth'] = Dividend['DeclaratioMonth'].apply(str)
                 Dividend['DeclarationDate'] = Dividend['DeclarationDate'].apply(str)
-                dataframe_bq.drop(dataframe_bq.loc[dataframe_bq['Ticker']==ticker].index, inplace=True)
+                dataframe_bq.loc[dataframe_bq['Ticker']==ticker, 'Dividend'] = pd.np.nan
+                dataframe_bq.loc[dataframe_bq['Ticker']==ticker, 'Dividend'] = dataframe_bq.apply(lambda x: Dividend, axis=1)
+                #json.loads(Dividend.to_json(orient="records"))
+                dataframe_bq.loc[dataframe_bq['Ticker']==ticker, 'RecentDeclarationDate'] = RecentDeclarationDate
+                dataframe_bq.loc[dataframe_bq['Ticker']==ticker, 'NextPayableDate'] = RecentDeclarationDate + timedelta(30)
                 #print(Dividend)
             else:
                 Dividend_csv_temp = Dividend_csv[['DeclarationYear','DeclaratioMonth', 'DeclarationDate']]
@@ -264,8 +273,8 @@ def csv_load():
             #print(dataframe_csv_outward)
         #dataframe_csv_inward.drop(['Calendar Date'], axis=1,inplace=True)
         #print(unique_inward_ticker)
-
-        dataframe_bq = dataframe_bq.append(unique_inward_ticker)
+        if(Dividend_bq.empty):
+            dataframe_bq = dataframe_bq.append(unique_inward_ticker)
         #print(dataframe_bq)
 
     dataframe_bq = dataframe_bq.drop_duplicates(subset=['Ticker','Mic'])
@@ -298,5 +307,3 @@ def csv_load():
             new_blob = source_bucket.copy_blob(source_blob, destination_bucket, file)
             # delete in old destination
             source_blob.delete()
-        
-        
