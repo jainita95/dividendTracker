@@ -69,7 +69,7 @@ CheckCalculateProbability = BranchPythonOperator(
 CallDividendApi = PythonVirtualenvOperator(
     task_id='CallDividendApi',
     python_callable=call_dividend_api,
-    requirements=['sendgrid==6.4.8','apache-airflow','psycopg2','psycopg2-binary','libpq-dev'],
+    requirements=['sendgrid==6.4.8','apache-airflow','libpq-dev','psycopg2-binary'],
     python_version='3',
     trigger_rule='all_done',
     dag=dag
@@ -77,7 +77,7 @@ CallDividendApi = PythonVirtualenvOperator(
 CsvLoad = PythonVirtualenvOperator(
     task_id='CsvLoad',
     python_callable=csv_load,
-    requirements=['sendgrid==6.4.8','apache-airflow','psycopg2-binary','libpq-dev'],
+    requirements=['sendgrid==6.4.8','apache-airflow','libpq-dev','psycopg2-binary'],
     python_version='3',
     trigger_rule='all_done',
     dag=dag
