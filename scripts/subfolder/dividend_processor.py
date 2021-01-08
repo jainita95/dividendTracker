@@ -278,7 +278,7 @@ def calculate_probability():
                                 to_emails=emails,
                                 subject = "Notice: An Upcoming Dividend Declaration cited for "+ company_name,
                                 html_content=html_string)
-                with open('/opt/bitnami/airflow/dags/git-github-com-jainita95-dividend-tracker-git/dags/hsbcLogo.png', 'rb') as f:
+                with open('/opt/bitnami/airflow/dags/git-github-com-jainita95-dividend-tracker-git/hsbcLogo.png', 'rb') as f:
                     data = f.read()
                     f.close()
                 encoded = base64.b64encode(data).decode()    
