@@ -23,8 +23,8 @@ args = {
     'retry_delay': timedelta(minutes=2),
 }
 dag = DAG(dag_id='dividend_orchestrator', default_args=args, schedule_interval=timedelta(days=1))  
-is_call_api = False
-is_csv_load = False
+is_call_api = True
+is_csv_load = True
 is_calculate_probability = True
 
 def check_call_api():
