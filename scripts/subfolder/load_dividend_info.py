@@ -35,10 +35,10 @@ def call_dividend_api():
            Variable.get("key",deserialize_json=True))
 
     project_id = 'hackathon-wpb'
-    table_id = 'hackathon-wpb.customer_relations.customer_dividend_malaysia'
+    table_id = 'hackathon-wpb.customer_relations.Test'
     query_string = """
        SELECT * 
-       FROM hackathon-wpb.customer_relations.customer_dividend_malaysia"""
+       FROM hackathon-wpb.customer_relations.Test"""
 
     url = "https://globalhistorical.xignite.com/v3/xGlobalHistorical.json/GetCashDividendHistory"
     client = bigquery.Client(credentials= credentials,project=project_id)
