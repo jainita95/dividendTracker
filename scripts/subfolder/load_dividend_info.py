@@ -35,10 +35,10 @@ def call_dividend_api():
            Variable.get("key",deserialize_json=True))
 
     project_id = 'hackathon-wpb'
-    table_id = 'hackathon-wpb.customer_relations.Test'
+    table_id = 'hackathon-wpb.customer_relations.customer_dividend_malayasia'
     query_string = """
        SELECT * 
-       FROM hackathon-wpb.customer_relations.Test"""
+       FROM hackathon-wpb.customer_relations.customer_dividend_malayasia"""
 
     url = "https://globalhistorical.xignite.com/v3/xGlobalHistorical.json/GetCashDividendHistory"
     client = bigquery.Client(credentials= credentials,project=project_id)
@@ -135,7 +135,7 @@ def call_dividend_api():
                                    month=today.month,
                                    day=today.day,
                                 )
-                  if (pd.isnull(declarationDate) or  (datetime.strptime(declarationDate,'%Y-%m-%d') < datetime.strptime(declaredDate,'%Y-%m-%d'))) and ((datetime.strptime(results[0]['PayDate'],'%Y-%m-%d')+timedelta(30))  > today_datetime):
+                  if (pd.isnull(declarationDate) or  (datetime.strptime(declarationDate,'%Y-%m-%d') < datetime.strptime(declaredDate,'%Y-%m-%d'))) and (datetime.strptime(results[0]['PayDate'],'%Y-%m-%d')  > today_datetime):
                         contacts =  dataframe["Contacts"][ind] 
 
                         html_string= None
