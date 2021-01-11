@@ -77,7 +77,7 @@ CallDividendApi = PythonVirtualenvOperator(
 CsvLoad = PythonVirtualenvOperator(
     task_id='CsvLoad',
     python_callable=csv_load,
-    requirements=['sendgrid==6.4.8','apache-airflow','psycopg2-binary','google-cloud-bigquery','google-cloud-bigquery-storage','pandas','pyarrow','datetime','pandas_gbq','tqdm','google-cloud-storage'],
+    requirements=['sendgrid==6.4.8','apache-airflow','psycopg2-binary','google-cloud-bigquery','google-cloud-bigquery-storage','pandas','pyarrow','datetime','pandas_gbq','tqdm','google-cloud-storage','fsspec','gcsfs'],
     python_version='3',
     trigger_rule='all_done',
     dag=dag
