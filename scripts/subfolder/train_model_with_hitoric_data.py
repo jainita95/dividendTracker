@@ -1,3 +1,55 @@
+def credit_score_table(row): 
+    credit_score = row.CreditScore
+    if credit_score >= 300 and credit_score < 500:
+        return "Very_Poor"
+    elif credit_score >= 500 and credit_score < 601:
+        return "Poor"
+    elif credit_score >= 601 and credit_score < 661:
+        return "Fair"
+    elif credit_score >= 661 and credit_score < 781:
+        return "Good"
+    elif credit_score >= 851:
+        return "Top"
+    elif credit_score >= 781 and credit_score < 851:
+        return "Excellent"
+    elif credit_score < 300:
+        return "Deep"
+def product_utilization_rate_by_year(row):
+    number_of_products = row.NumOfProducts
+    tenure = row.Tenure
+    
+    if number_of_products == 0:
+        return 0
+    
+    if tenure == 0:
+        return number_of_products
+    
+    rate = number_of_products / tenure
+    return rate
+def product_utilization_rate_by_estimated_salary(row):
+    number_of_products = row.number_of_products
+    estimated_salary = row.EstimatedSalary
+    
+    if number_of_products == 0:
+        return 0
+
+    
+    rate = number_of_products / estimated_salary
+    return rate
+def countries_monthly_average_salaries(row):
+    #brutto datas from  https://tr.wikipedia.org/wiki/Aylık_ortalama_ücretlerine_göre_Avrupa_ülkeleri_listesi
+    fr = 3696    
+    de = 4740
+    sp = 2257
+    salary = row.EstimatedSalary / 12
+    country = row.Geography              # Germany, France and Spain
+    
+    if country == 'Germany':
+        return salary / de
+    elif country == "France":
+        return salary / fr
+    elif country == "Spain": 
+        return salary / sp
 def train_model_and_store():
     from airflow.operators.python_operator import PythonOperator
     from airflow.operators.bash_operator  import BashOperator
@@ -28,148 +80,165 @@ def train_model_and_store():
     from string import Template
     from sendgrid.helpers.mail import To,Attachment,FileContent,FileType,FileName,Disposition,ContentId
     import base64
+    import numpy as np
+    import pandas as pd
+    from sklearn.linear_model import LogisticRegression  
+    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.svm import SVC
+    from sklearn.tree import DecisionTreeClassifier 
+    from sklearn.ensemble import RandomForestClassifier
+    from lightgbm import LGBMClassifier
+    from sklearn.model_selection import train_test_split
+    from sklearn import preprocessing
+    from xgboost import XGBClassifier
+    from sklearn.model_selection import KFold
+    from sklearn.model_selection import cross_val_score, GridSearchCV,train_test_split,cross_val_score
+    import itertools
+    from sklearn.preprocessing import PolynomialFeatures
+    from sklearn.neighbors import LocalOutlierFactor # çok değişkenli aykırı gözlem incelemesi
+    from sklearn.preprocessing import scale,StandardScaler, MinMaxScaler,Normalizer,RobustScaler
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import classification_report
+    from sklearn.metrics import  accuracy_score, f1_score, precision_score,confusion_matrix, recall_score, roc_auc_score
+    from xgboost import XGBClassifier
+    from lightgbm import LGBMClassifier
+    from catboost import CatBoostClassifier
+    from sklearn.ensemble import RandomForestClassifier,AdaBoostClassifier,GradientBoostingClassifier
+    import warnings
+    from google.cloud import storage
+    from google.oauth2 import service_account
+    from sklearn.preprocessing import LabelEncoder
+    from sklearn.preprocessing import StandardScaler
     import pickle
+    import os
+    import cloudstorage as gcs
 
 
     credentials=service_account.Credentials.from_service_account_info(
            Variable.get("key",deserialize_json=True))
 
-    project_id = 'hackathon-wpb'
-    table_id = 'hackathon-wpb.customer_relations.customer_dividend_malayasia'
-    query_string = """
-       SELECT * 
-       FROM hackathon-wpb.customer_relations.customer_dividend_malayasia"""
+    warnings.filterwarnings("ignore", category=DeprecationWarning) 
+    warnings.filterwarnings("ignore", category=FutureWarning) 
+    warnings.filterwarnings("ignore", category=UserWarning) 
+    source_bucket = 'hackathon-21-customer-profile-details-historic-data'
+    storage_client = storage.Client()
+    source_bucket = storage_client.bucket(source_bucket)
+    filepaths_inward = []
+    fnames_inward = []
+    updated_inward = []
+    dict_df = {}
 
-    url = "https://globalhistorical.xignite.com/v3/xGlobalHistorical.json/GetCashDividendHistory"
-    client = bigquery.Client(credentials= credentials,project=project_id)
 
-    job_config = bigquery.LoadJobConfig(
-        source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
-        schema = [
-            bigquery.schema.SchemaField('Ticker', 'STRING', mode='REQUIRED'),
-            bigquery.schema.SchemaField('Mic', 'STRING', mode='REQUIRED'),        
-            bigquery.schema.SchemaField('Contacts', 'RECORD', mode='REPEATED', fields = [
-                bigquery.schema.SchemaField('Name', 'STRING', mode='NULLABLE'),
-                bigquery.schema.SchemaField('email', 'STRING', mode='NULLABLE')]),
-            bigquery.schema.SchemaField('Dividend', 'RECORD', mode='REPEATED', fields = [
-                bigquery.schema.SchemaField('DeclarationYear', 'STRING', mode='NULLABLE'),
-                bigquery.schema.SchemaField('DeclaratioMonth', 'STRING', mode='NULLABLE'),
-                bigquery.schema.SchemaField('DeclarationDate', 'STRING', mode='NULLABLE')]),        
-            bigquery.schema.SchemaField('RecentDeclarationDate', 'DATE', mode='NULLABLE'),
-            bigquery.schema.SchemaField('NextPayableDate', 'DATE', mode='NULLABLE'),
-            bigquery.schema.SchemaField('ProbabilityNextMonthDeclaration', 'NUMERIC', mode='NULLABLE'),
-            bigquery.schema.SchemaField('Period', 'INTEGER', mode='NULLABLE'),
-            bigquery.schema.SchemaField('ExpectedStartDate', 'DATE', mode='NULLABLE'),
-            bigquery.schema.SchemaField('ExpectedEndDate', 'DATE', mode='NULLABLE'),
-            bigquery.schema.SchemaField('LastRunDate', 'DATE', mode='NULLABLE')
-        ],
-        write_disposition="WRITE_TRUNCATE",
-    )
-    s = requests.Session()
+    for file in list(source_bucket.list_blobs()):
+        file_path='gs://{}/{}'.format(file.bucket.name, file.name)
+        if(file.name.endswith(".csv")):
+            filepaths_inward.append(file_path)
+            fnames_inward.append(file.name)
+            updated_inward.append(file.updated)
+    print(filepaths_inward)
 
-    retries = Retry(total=5,
-                    backoff_factor=0.1,
-                    status_forcelist=[500, 502, 503, 504 ,400],
-                    raise_on_status =True)
+    df_file_inward = pd.DataFrame(fnames_inward, columns=['fname'])
+    df_file_inward['filepath'] = filepaths_inward
+    df_file_inward['updated'] = pd.to_datetime(updated_inward)
+    df_file_inward['updated'] = df_file_inward['updated'].dt.date
+    if df_file_inward.empty:
+        raise ValueError("No Content to process")
+    dict_df['df_inward'] = df_file_inward.to_json()
+    dependent_variable_name = "Exited"
+    if len(filepaths_inward) > 0:
+        df = pd.concat((pd.read_csv(f) for f in filepaths_inward)) 
+        #print(df.head())
 
-    s.mount('https://', HTTPAdapter(max_retries=retries))
+        #dataprep
+        df_prep = df.copy()
+        missing_value_len = df.isnull().any().sum()
+        if missing_value_len == 0:
+            print("No Missing Value")
+        else:
+            print("Investigate Missing Value, Missing Value : " + str(missing_value_len))
+        print("\n")
 
-    dataframe = pdgbq.read_gbq(query = query_string,project_id=project_id)
-    dataframe['NextPayableDate'] = [d.strftime('%Y-%m-%d') if not pd.isnull(d) else None for d in dataframe['NextPayableDate']]
-    dataframe['ExpectedStartDate'] = [d.strftime('%Y-%m-%d') if not pd.isnull(d) else None for d in dataframe['ExpectedStartDate']]
-    dataframe['ExpectedEndDate'] = [d.strftime('%Y-%m-%d') if not pd.isnull(d) else None for d in dataframe['ExpectedEndDate']]
-    dataframe['LastRunDate'] = [d.strftime('%Y-%m-%d') if not pd.isnull(d) else None for d in dataframe['LastRunDate']]
-    dataframe['RecentDeclarationDate'] = [d.strftime('%Y-%m-%d') if not pd.isnull(d) else None for d in dataframe['RecentDeclarationDate']]
-    dataframe['Period'] = dataframe['Period'].astype('Int64')
+        df_prep['Tenure'] =  df_prep.Tenure.astype(np.float)
+        df_prep['NumOfProducts'] =  df_prep.NumOfProducts.astype(np.float)
+        numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
+        df_num_cols = df_prep.select_dtypes(include=numerics)
+        df_outlier = df_num_cols.astype("float64")
+        clf = LocalOutlierFactor(n_neighbors = 20, contamination = 0.1)
+        clf.fit_predict(df_outlier)
+        df_scores = clf.negative_outlier_factor_
+        scores_df = pd.DataFrame(np.sort(df_scores))
 
-    for ind in dataframe.index: 
+        scores_df.plot(stacked=True, xlim = [0,20], color='r', title='Visualization of outliers according to the LOF method', style = '.-');                # first 20 observe
+        th_val = np.sort(df_scores)[2]
+        outliers = df_scores > th_val
+        df_prep = df_prep.drop(df_outlier[~outliers].index)
+        df_prep.shape
+        Q1 = df["Age"].quantile(0.25)
+        Q3 = df["Age"].quantile(0.75)
+        IQR = Q3 - Q1
+        lower = Q1 - 1.5 * IQR
+        upper = Q3 + 1.5 * IQR
+        #print("When age and credit score is printed below lower score: ", lower, "and upper score: ", upper)
+        df_outlier = df_prep["Age"][(df_prep["Age"] > upper)]
+        df_prep["Age"][df_outlier.index] = upper    
+        Q1 = df["CreditScore"].quantile(0.25)
+        Q3 = df["CreditScore"].quantile(0.75)
+        IQR = Q3 - Q1
+        lower = Q1 - 1.5 * IQR
+        upper = Q3 + 1.5 * IQR
+        #print("When age and credit score is printed above lower score: ", lower, "and upper score: ", upper)
+        df_outlier = df_prep["CreditScore"][(df_prep["CreditScore"] < lower)]
+        df_prep["CreditScore"][df_outlier.index] = lower
 
-          mic = dataframe['Mic'][ind]
-          if not (mic == 'HSBC_non_local_customer' or mic == 'HSBC_local_customer'):
-              declarationDate = dataframe['RecentDeclarationDate'][ind]
-              params = {'IdentifierType' : 'Symbol',
-                        'Identifier' :  dataframe.iloc[ind]['Ticker'],
-                        'IdentifierAsOfDate': ' ',
-                        'StartDate' : '01/01/2018',
-                        'EndDate' : datetime.now().strftime('%m/%d/%Y'),
-                        'CorporateActionsAdjusted' : 'True',
-                        '_token' : Variable.get("xignitetoken")}
-              response = s.get(url = url, params = params)
-              results =  json.loads(response.text)['CashDividends']
-              if len(results) > 0:
-                  declaredDate = results[0]['DeclaredDate']
-                  if results[0]['DeclaredDate'] == None and results[0]['ExDate'] != None :
-                        declaredDate = (datetime.strptime(results[0]['ExDate'],'%Y-%m-%d') - timedelta(30)).strftime('%Y-%m-%d')
+        df_fe = df_prep.copy()
+        balance_salary_rate = 'balance_salary_rate'
+        df_fe[balance_salary_rate] = df_fe.Balance / df_fe.EstimatedSalary
+        df_fe = df_fe.assign(product_utilization_rate_by_year=df_fe.apply(lambda x: product_utilization_rate_by_year(x), axis=1)) 
+        tenure_rate_by_age = 'tenure_rate_by_age'
+        df_fe[tenure_rate_by_age] = df_fe.Tenure / (df_fe.Age-17)
+        credit_score_rate_by_age = 'credit_score_rate_by_age'
+        df_fe[credit_score_rate_by_age] = df_fe.CreditScore / (df_fe.Age-17)
+        product_utilization_rate_by_salary = 'product_utilization_rate_by_salary'
+        credit_score_rate_by_salary = 'credit_score_rate_by_salary'
+        df_fe[credit_score_rate_by_salary] = df_fe.CreditScore / (df_fe.EstimatedSalary)
+        df_fe = df_fe.assign(credit_score_table=df_fe.apply(lambda x: credit_score_table(x), axis=1))
+        df_fe = df_fe.assign(countries_monthly_average_salaries = df_fe.apply(lambda x: countries_monthly_average_salaries(x), axis=1))
+        #print(df_fe.head(3))
 
-                  for i in range(0, len(results)):
-                      if not(results[i]['DeclaredDate'] == None and results[i]['ExDate'] ==None) :  
+        df_model = df_fe.copy()
+        non_encoding_columns = ["Geography","HasCrCard","IsActiveMember","Gender","NumOfProducts","Tenure","credit_score_table","# Error logs"]
+        df_non_encoding = df_model[non_encoding_columns]
+        df_model = df_model.drop(non_encoding_columns,axis=1)
+        df_encoding = df_non_encoding.copy()
+        encoder = LabelEncoder()
+        df_encoding["gender_category"] = encoder.fit_transform(df_non_encoding.Gender)
+        df_encoding["country_category"] = encoder.fit_transform(df_non_encoding.Geography)
+        df_encoding["credit_score_category"] = encoder.fit_transform(df_non_encoding.credit_score_table)
+        df_encoding.reset_index(drop=True, inplace=True)
+        df_model.reset_index(drop=True, inplace=True)
+        df_model = pd.concat([df_model,df_encoding],axis=1)
+        df_model = df_model.drop(["Geography","Gender","CustomerId","Surname","credit_score_table","CreditScore","EstimatedSalary"],axis=1)
+        df_model = df_model.reset_index()
+        df_model = df_model.drop('index',axis=1)  
+        df_model.loc[df_model.HasCrCard == 0, 'credit_card_situation'] = -1
+        df_model.loc[df_model.IsActiveMember == 0, 'is_active_member'] = -1
+        df_model.drop(['credit_card_situation', 'is_active_member'], axis=1, inplace=True)
+        #print(df_model.head(3))
 
-                          if results[i]['DeclaredDate'] == None:
-                              dt = datetime.strptime(results[i]['ExDate'],'%Y-%m-%d') - timedelta(30)
-                          else:
-                              dt = datetime.strptime(results[i]['DeclaredDate'],'%Y-%m-%d')
-                          year= dt.year
-                          month = dt.month
-                          day = dt.day
-                          if pd.isnull(declarationDate) :
-                              baseArray = dataframe.iloc[ind]['Dividend']
-                              if not isinstance(dataframe.iloc[ind]['Dividend'],(np.ndarray)):
-                                    baseArray = []
-                              newDeclaration = {'DeclarationYear': str(year), 'DeclaratioMonth': str(month), 'DeclarationDate': str(day)}
-                              appendedDeclaration=np.append(baseArray,[newDeclaration])
-                              dataframe.at[ind,'Dividend']=appendedDeclaration  
-                              #query_job.result() 
-                          elif dt > datetime.strptime(declarationDate,'%Y-%m-%d'):
-                              newDeclaration = {'DeclarationYear': str(year), 'DeclaratioMonth': str(month), 'DeclarationDate': str(day)}
-                              appendedDeclaration=np.append(dataframe.iloc[ind]['Dividend'],[newDeclaration])
-                              dataframe.at[ind,'Dividend']=appendedDeclaration 
-                              #query_job.result() 
-                  if pd.isnull(declarationDate) or  (datetime.strptime(declarationDate,'%Y-%m-%d') < datetime.strptime(declaredDate,'%Y-%m-%d')):
-                      dataframe.at[ind,'RecentDeclarationDate']=declaredDate
-                      dataframe.at[ind,'NextPayableDate']=results[0]['PayDate'] 
-                      #query_job.result() 
+        y = df_model[dependent_variable_name]
+        X = df_model.loc[:, df_model.columns != dependent_variable_name]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 12345)
+        sc = StandardScaler()
+        X_train = sc.fit_transform(X_train)
+        X_test = sc.transform (X_test)
+        logr_model = RandomForestClassifier().fit(X_train,y_train)
+        y_pred = logr_model.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
 
-                  today = date.today()
-                  today_datetime = datetime(
-                                   year=today.year, 
-                                   month=today.month,
-                                   day=today.day,
-                                )
-                  if (pd.isnull(declarationDate) or  (datetime.strptime(declarationDate,'%Y-%m-%d') < datetime.strptime(declaredDate,'%Y-%m-%d'))) and (datetime.strptime(results[0]['PayDate'],'%Y-%m-%d')  > today_datetime):
-                        contacts =  dataframe["Contacts"][ind] 
+        #print(classification_report(y_test, y_pred, digits=4))
+        #print("Accuracy score of Logistic Regression: ", accuracy)
 
-                        html_string= None
-                        with open('/opt/bitnami/airflow/dags/git-github-com-jainita95-dividend-tracker-git/EmailTemplateDividendDeclared.html', 'r') as f:
-                            html_string = f.read()
-                        html_string=html_string.format(code=dataframe.iloc[ind]['Ticker'],date=results[0]['PayDate'])   
-                        name = []
-                        emails= []
-                        for i in range(0,contacts.size):
-                            name.append(contacts[i]['Name'])
-                            emails.append(To(contacts[i]['email']))
-                        message = Mail(
-                                from_email='jainita95@outlook.com',
-                                to_emails=emails,
-                                subject = "Urgent ! New Dividend Declared for "+ dataframe.iloc[ind]['Ticker'],
-                                html_content=html_string)
-                        with open('/opt/bitnami/airflow/dags/git-github-com-jainita95-dividend-tracker-git/hsbcLogo.png', 'rb') as f:
-                            data = f.read()
-                            f.close()
-                        encoded = base64.b64encode(data).decode()    
-                        attachment = Attachment()
-                        attachment.file_content = FileContent(encoded)
-                        attachment.file_type = FileType('image/png')
-                        attachment.file_name = FileName('hsbcLogo.png')
-                        attachment.disposition = Disposition('inline')
-                        attachment.content_id = ContentId('hsbclogo')
-                        message.add_attachment(attachment)
-                        try:
-                            sg = SendGridAPIClient(Variable.get("sendgridapikey"))
-                            response = sg.send(message)
-                        except Exception as e:
-                            print(e.message)
-
-    json_df= dataframe.to_json(orient="records")
-    json_data = json.loads(json_df)
-    job = client.load_table_from_json(json_data , table_id, job_config=job_config)  # Make an API request.
-    job.result() 
+        json_data_path = os.path.join(os.getcwd(), "jsonTemp.pkl")
+        with open(json_data_path, 'wb')as f:
+            pickle.dump(logr_model,f)
+        source_bucket.blob('model.pkl').upload_from_filename("jsonTemp.pkl")
