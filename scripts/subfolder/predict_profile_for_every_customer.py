@@ -202,6 +202,6 @@ def predict_profile():
         df_model[dependent_variable_name] = y_pred
         print(accuracy)
         print(df_model)
-        json_data_path = os.path.join(os.getcwd(), "temp_csv.csv")
+        json_data_path = os.path.join(os.path.dirname(__file__), 'temp_csv.csv')
         df_model.to_csv('temp_csv.csv')
         model_bucket.blob('temp_csv.csv').upload_from_filename("temp_csv.csv")
