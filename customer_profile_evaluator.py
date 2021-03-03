@@ -46,8 +46,8 @@ def check_update_warehouse():
         return 'Skip3'    
 
     
-CheckCallApi = BranchPythonOperator(
-    task_id='CheckCallApi',
+CheckTrainApi = BranchPythonOperator(
+    task_id='CheckTrainApi',
     python_callable=check_train_api,
      trigger_rule='all_done',
     dag=dag
@@ -96,8 +96,8 @@ Join = DummyOperator(task_id='Join', dag=dag,trigger_rule='all_done')
 Skip1 = DummyOperator(task_id='Skip1', dag=dag,trigger_rule='all_done')
 Skip2 = DummyOperator(task_id='Skip2', dag=dag,trigger_rule='all_done')
 Skip3 = DummyOperator(task_id='Skip3', dag=dag,trigger_rule='all_done')
-TrainModel.set_upstream(CheckCallApi)
-Skip1.set_upstream(CheckCallApi)
+TrainModel.set_upstream(CheckTrainApi)
+Skip1.set_upstream(CheckTrainApi)
 CheckPredictProfile.set_upstream(Skip1)
 CheckPredictProfile.set_upstream(TrainModel)
 PredictProfile.set_upstream(CheckPredictProfile)
