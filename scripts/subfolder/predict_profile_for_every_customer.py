@@ -37,10 +37,8 @@ def predict_profile():
     from sklearn.svm import SVC
     from sklearn.tree import DecisionTreeClassifier 
     from sklearn.ensemble import RandomForestClassifier
-    from lightgbm import LGBMClassifier
     from sklearn.model_selection import train_test_split
     from sklearn import preprocessing
-    from xgboost import XGBClassifier
     from sklearn.model_selection import KFold
     from sklearn.model_selection import cross_val_score, GridSearchCV,train_test_split,cross_val_score
     import itertools
@@ -50,9 +48,6 @@ def predict_profile():
     from sklearn.preprocessing import StandardScaler
     from sklearn.metrics import classification_report
     from sklearn.metrics import  accuracy_score, f1_score, precision_score,confusion_matrix, recall_score, roc_auc_score
-    from xgboost import XGBClassifier
-    from lightgbm import LGBMClassifier
-    from catboost import CatBoostClassifier
     from sklearn.ensemble import RandomForestClassifier,AdaBoostClassifier,GradientBoostingClassifier
     import warnings
     from google.cloud import storage
