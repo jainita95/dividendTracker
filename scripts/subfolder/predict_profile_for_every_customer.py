@@ -143,6 +143,10 @@ def predict_profile():
         raise ValueError("No Content to process")
     dict_df['df_inward'] = df_file_inward.to_json()
     dependent_variable_name = "Exited"
+    pickle_blob = model_bucket.blob("model.pkl").download_to_filename("jsonTemp2.pkl")
+    pickle_blob = pickle.load(open('jsonTemp2.pkl','rb'))
+    logr_model = pickle_blob
+    print("loaded model successfully")
     if len(filepaths_inward) > 0:
         df = pd.concat((pd.read_csv(f) for f in filepaths_inward))
         df_prep = df.copy()
@@ -169,7 +173,7 @@ def predict_profile():
         df_fe[credit_score_rate_by_salary] = df_fe.CreditScore / (df_fe.EstimatedSalary)
         df_fe = df_fe.assign(credit_score_table=df_fe.apply(lambda x: credit_score_table(x), axis=1))
         df_fe = df_fe.assign(countries_monthly_average_salaries = df_fe.apply(lambda x: countries_monthly_average_salaries(x), axis=1))
-        #print(df_fe.head(3))
+        print(df_fe.head(3))
 
         df_model = df_fe.copy()
         non_encoding_columns = ["Geography","HasCrCard","IsActiveMember","Gender","NumOfProducts","Tenure","credit_score_table","# Error logs"]
@@ -191,9 +195,7 @@ def predict_profile():
         df_model.drop(['credit_card_situation', 'is_active_member'], axis=1, inplace=True)
         X_test = df_model.loc[:, df_model.columns != dependent_variable_name]
         y_test = df_model[dependent_variable_name]
-        pickle_blob = model_bucket.blob("model.pkl").download_to_filename("jsonTemp2.pkl")
-        pickle_blob = pickle.load(open('jsonTemp2.pkl','rb'))
-        logr_model = pickle_blob
+
         y_pred = logr_model.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
         df_model[dependent_variable_name] = y_pred
@@ -202,4 +204,3 @@ def predict_profile():
         json_data_path = os.path.join(os.getcwd(), "temp_csv.csv")
         df_model.to_csv('temp_csv.csv')
         model_bucket.blob('temp_csv.csv').upload_from_filename("temp_csv.csv")
-
