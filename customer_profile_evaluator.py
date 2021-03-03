@@ -68,7 +68,7 @@ CheckUpdateWarehouse = BranchPythonOperator(
 #python3 /home/airflow/gcs/dags/test.py
 TrainModel = PythonVirtualenvOperator(
     task_id='TrainModel',
-    python_callable=update_data_warehouse,
+    python_callable=train_model_and_store,
     requirements=['sendgrid==6.4.8','apache-airflow','psycopg2-binary','google-cloud-bigquery','google-cloud-bigquery-storage','pandas','pyarrow','datetime','pandas_gbq','tqdm','google-cloud-storage','sklearn','cloudstorage'],
     python_version='3',
     trigger_rule='all_done',
@@ -76,7 +76,7 @@ TrainModel = PythonVirtualenvOperator(
 )
 PredictProfile = PythonVirtualenvOperator(
     task_id='PredictProfile',
-    python_callable=train_model_and_store,
+    python_callable=predict_profile,
     requirements=['sendgrid==6.4.8','apache-airflow','psycopg2-binary','google-cloud-bigquery','google-cloud-bigquery-storage','pandas','pyarrow','datetime','pandas_gbq','tqdm','google-cloud-storage','fsspec', 'sklearn','gcsfs', 'cloudstorage'],
     python_version='3',
     trigger_rule='all_done',
@@ -84,7 +84,7 @@ PredictProfile = PythonVirtualenvOperator(
 )
 UpdateWarehouse = PythonVirtualenvOperator(
     task_id='UpdateWarehouse',
-    python_callable=predict_profile,
+    python_callable=update_data_warehouse,
     requirements=['sendgrid==6.4.8','apache-airflow','psycopg2-binary','google-cloud-bigquery','google-cloud-bigquery-storage','pandas','pyarrow','datetime','pandas_gbq','tqdm','google-cloud-storage', 'sklearn', 'cloudstorage'],
     python_version='3',
     trigger_rule='all_done',
