@@ -233,6 +233,6 @@ def train_model_and_store():
         #print("Accuracy score of Logistic Regression: ", accuracy)
 
         json_data_path = os.path.join(os.getcwd(), "jsonTemp.pkl")
-        with open(json_data_path, 'wb')as f:
+        with open(os.path.join(os.path.dirname(__file__), 'jsonTemp.pkl'), 'w') as f:
             pickle.dump(logr_model,f)
         source_bucket.blob('model.pkl').upload_from_filename("jsonTemp.pkl")
