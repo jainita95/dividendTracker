@@ -162,7 +162,7 @@ def train_model_and_store():
         df_scores = clf.negative_outlier_factor_
         scores_df = pd.DataFrame(np.sort(df_scores))
 
-        scores_df.plot(stacked=True, xlim = [0,20], color='r', title='Visualization of outliers according to the LOF method', style = '.-');                # first 20 observe
+        #scores_df.plot(stacked=True, xlim = [0,20], color='r', title='Visualization of outliers according to the LOF method', style = '.-');                # first 20 observe
         th_val = np.sort(df_scores)[2]
         outliers = df_scores > th_val
         df_prep = df_prep.drop(df_outlier[~outliers].index)
