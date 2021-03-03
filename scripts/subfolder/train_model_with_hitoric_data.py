@@ -1,55 +1,3 @@
-def credit_score_table(row): 
-    credit_score = row.CreditScore
-    if credit_score >= 300 and credit_score < 500:
-        return "Very_Poor"
-    elif credit_score >= 500 and credit_score < 601:
-        return "Poor"
-    elif credit_score >= 601 and credit_score < 661:
-        return "Fair"
-    elif credit_score >= 661 and credit_score < 781:
-        return "Good"
-    elif credit_score >= 851:
-        return "Top"
-    elif credit_score >= 781 and credit_score < 851:
-        return "Excellent"
-    elif credit_score < 300:
-        return "Deep"
-def product_utilization_rate_by_year(row):
-    number_of_products = row.NumOfProducts
-    tenure = row.Tenure
-    
-    if number_of_products == 0:
-        return 0
-    
-    if tenure == 0:
-        return number_of_products
-    
-    rate = number_of_products / tenure
-    return rate
-def product_utilization_rate_by_estimated_salary(row):
-    number_of_products = row.number_of_products
-    estimated_salary = row.EstimatedSalary
-    
-    if number_of_products == 0:
-        return 0
-
-    
-    rate = number_of_products / estimated_salary
-    return rate
-def countries_monthly_average_salaries(row):
-    #brutto datas from  https://tr.wikipedia.org/wiki/Aylık_ortalama_ücretlerine_göre_Avrupa_ülkeleri_listesi
-    fr = 3696    
-    de = 4740
-    sp = 2257
-    salary = row.EstimatedSalary / 12
-    country = row.Geography              # Germany, France and Spain
-    
-    if country == 'Germany':
-        return salary / de
-    elif country == "France":
-        return salary / fr
-    elif country == "Spain": 
-        return salary / sp
 def train_model_and_store():
     from airflow.operators.python_operator import PythonOperator
     from airflow.operators.bash_operator  import BashOperator
@@ -127,7 +75,58 @@ def train_model_and_store():
     fnames_inward = []
     updated_inward = []
     dict_df = {}
+    def credit_score_table(row): 
+        credit_score = row.CreditScore
+        if credit_score >= 300 and credit_score < 500:
+            return "Very_Poor"
+        elif credit_score >= 500 and credit_score < 601:
+            return "Poor"
+        elif credit_score >= 601 and credit_score < 661:
+            return "Fair"
+        elif credit_score >= 661 and credit_score < 781:
+            return "Good"
+        elif credit_score >= 851:
+            return "Top"
+        elif credit_score >= 781 and credit_score < 851:
+            return "Excellent"
+        elif credit_score < 300:
+            return "Deep"
+    def product_utilization_rate_by_year(row):
+        number_of_products = row.NumOfProducts
+        tenure = row.Tenure
 
+        if number_of_products == 0:
+            return 0
+
+        if tenure == 0:
+            return number_of_products
+
+        rate = number_of_products / tenure
+        return rate
+    def product_utilization_rate_by_estimated_salary(row):
+        number_of_products = row.number_of_products
+        estimated_salary = row.EstimatedSalary
+
+        if number_of_products == 0:
+            return 0
+
+
+        rate = number_of_products / estimated_salary
+        return rate
+    def countries_monthly_average_salaries(row):
+        #brutto datas from  https://tr.wikipedia.org/wiki/Aylık_ortalama_ücretlerine_göre_Avrupa_ülkeleri_listesi
+        fr = 3696    
+        de = 4740
+        sp = 2257
+        salary = row.EstimatedSalary / 12
+        country = row.Geography              # Germany, France and Spain
+
+        if country == 'Germany':
+            return salary / de
+        elif country == "France":
+            return salary / fr
+        elif country == "Spain": 
+            return salary / sp
 
     for file in list(source_bucket.list_blobs()):
         file_path='gs://{}/{}'.format(file.bucket.name, file.name)
