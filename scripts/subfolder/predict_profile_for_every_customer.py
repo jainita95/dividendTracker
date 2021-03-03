@@ -143,7 +143,8 @@ def predict_profile():
     dict_df['df_inward'] = df_file_inward.to_json()
     dependent_variable_name = "Exited"
     pickle_blob = model_bucket.blob("model.pkl").download_to_filename("jsonTemp2.pkl")
-    pickle_blob = pickle.load(open('jsonTemp2.pkl','rb'))
+    os_file_path = os.path.join(os.path.dirname(__file__), 'jsonTemp2.pkl')
+    pickle_blob = pickle.load(open(os_file_path,'rb'))
     logr_model = pickle_blob
     print("loaded model successfully")
     if len(filepaths_inward) > 0:
