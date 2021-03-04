@@ -64,12 +64,13 @@ def predict_profile():
     source_bucket = 'hackathon-21-customer-profile-details-latest'
     storage_client = storage.Client()
     source_bucket = storage_client.bucket(source_bucket)
-    credentials=service_account.Credentials.from_service_account_info(
-           Variable.get("key",deserialize_json=True))
+    credentials = service_account.Credentials.from_service_account_file(
+    'hackathon-wpb-1d59b3035965.json')
     model_bucket = 'hackathon-21-customer-profile-details-temp'
     storage_client = storage.Client()
     model_bucket = storage_client.bucket(model_bucket)
-    
+    credentials = service_account.Credentials.from_service_account_file(
+    'hackathon-wpb-1d59b3035965.json')
     filepaths_inward = []
     fnames_inward = []
     updated_inward = []
@@ -142,15 +143,22 @@ def predict_profile():
         raise ValueError("No Content to process")
     dict_df['df_inward'] = df_file_inward.to_json()
     dependent_variable_name = "Exited"
-    os_file_path = os.path.join(os.path.dirname(__file__), 'jsonTemp2.pkl')
-    pickle_blob = model_bucket.blob("model.pkl").download_to_filename(os_file_path)
-    
-    pickle_blob = pickle.load(open(os_file_path,'rb'))
+    pickle_blob = model_bucket.blob("model.pkl").download_to_filename("jsonTemp2.pkl")
+    pickle_blob = pickle.load(open('jsonTemp2.pkl','rb'))
+    df_thresholds_path = os.path.join(os.getcwd(), "threshold.pkl")
+    pickle_threshold = model_bucket.blob("threshold.pkl").download_to_filename(df_thresholds_path)
+    pickle_threshold = pickle.load(open(df_thresholds_path,'rb'))
+    df_threshold = pickle_threshold
     logr_model = pickle_blob
     print("loaded model successfully")
     if len(filepaths_inward) > 0:
-        df = pd.concat((pd.read_csv(f) for f in filepaths_inward))
+        df_input = pd.concat((pd.read_csv(f) for f in filepaths_inward)) 
+        df_input = df_input.dropna()
+        df_input.head()
+        df=df_input[['CustomerId','Surname','CreditScore','Geography','Gender','Age','Tenure','Balance','NumOfProducts','HasCrCard','IsActiveMember','EstimatedSalary','# Error logs','Exited']].copy()
+
         df_prep = df.copy()
+        print(df_prep)
         missing_value_len = df.isnull().any().sum()
         if missing_value_len == 0:
             print("No Missing Value")
@@ -199,9 +207,42 @@ def predict_profile():
 
         y_pred = logr_model.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
-        df_model[dependent_variable_name] = y_pred
-        print(accuracy)
-        print(df_model)
-        json_data_path = os.path.join(os.path.dirname(__file__), 'temp_csv.csv')
-        df_model.to_csv(json_data_path)
-        model_bucket.blob('temp_csv.csv').upload_from_filename(json_data_path)
+        df_input[dependent_variable_name] = y_pred
+        df_input['isCreditScoreFactor']=False
+        df_input['isAgeFactor']=False
+        df_input['isBalanceFactor']=False
+        df_input['isNumOfProductsFactor']=False
+        df_input['isHasCrCardFactor']=False
+        df_input['isActiveMemberFactor']=False
+        df_input['isErrorLogsFactor']=False
+        for ind in df_input.index:
+            isExited = df_input[dependent_variable_name][ind]
+            customer_id = df_input['CustomerId'][ind]
+            credit_score = df_input['CreditScore'][ind]
+            age = df_input['Age'][ind]
+            balance = df_input['Balance'][ind]
+            no_of_products = df_input['NumOfProducts'][ind]
+            has_credit_card = df_input['HasCrCard'][ind]
+            is_active_member = df_input['IsActiveMember'][ind]
+            no_of_error_logs = df_input['# Error logs'][ind]
+            if(isExited==1):
+                if(credit_score < df_threshold.loc[df_threshold['contributing_factor'] == 'isCreditScoreFactor', 'max_threshold'].iloc[0]):
+                    print(df_input.loc[df_input['CustomerId'] == 'customer_id', 'isCreditScoreFactor'])
+                    df_input.loc[df_input['CustomerId'] == 'customer_id', 'isCreditScoreFactor'] = True
+                if((df_threshold.loc[df_threshold['contributing_factor'] == 'isAgeFactor', 'min_threshold'].iloc[0]) <= age <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isAgeFactor', 'max_threshold'].iloc[0])):
+                    df_input['isAgeFactor'][ind] = True
+                if((df_threshold.loc[df_threshold['contributing_factor'] == 'isBalanceFactor', 'min_threshold'].iloc[0]) <= balance <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isBalanceFactor', 'max_threshold'].iloc[0])):
+                    df_input['isBalanceFactor'][ind] = True
+                if((df_threshold.loc[df_threshold['contributing_factor'] == 'isNumOfProductsFactor', 'min_threshold'].iloc[0]) <= no_of_products <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isNumOfProductsFactor', 'max_threshold'].iloc[0])):
+                    df_input['isNumOfProductsFactor'][ind] = True
+                if((df_threshold.loc[df_threshold['contributing_factor'] == 'isHasCrCardFactor', 'min_threshold'].iloc[0]) <= has_credit_card <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isHasCrCardFactor', 'max_threshold'].iloc[0])):
+                    df_input['isHasCrCardFactor'][ind] = True
+                if((df_threshold.loc[df_threshold['contributing_factor'] == 'isActiveMemberFactor', 'min_threshold'].iloc[0]) <= is_active_member <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isActiveMemberFactor', 'max_threshold'].iloc[0])):
+                    df_input['isActiveMemberFactor'][ind] = True
+                if((df_threshold.loc[df_threshold['contributing_factor'] == 'isErrorLogsFactor', 'min_threshold'].iloc[0]) <= no_of_error_logs <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isErrorLogsFactor', 'max_threshold'].iloc[0])):
+                    df_input['isErrorLogsFactor'][ind] = True
+
+        json_data_path = os.path.join(os.getcwd(), "temp_csv.csv")
+        df_input.to_csv('temp_csv.csv')
+        model_bucket.blob('temp_csv.csv').upload_from_filename("temp_csv.csv")
+
