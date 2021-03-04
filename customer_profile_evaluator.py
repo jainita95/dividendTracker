@@ -25,7 +25,7 @@ args = {
 dag = DAG(dag_id='customer-profile-evaluator', default_args=args, schedule_interval=timedelta(days=1))  
 is_train_model = True
 is_predict_profile = True
-is_upadate_warehouse = False
+is_upadate_warehouse = True
 
 def check_train_api():
     if is_train_model:
