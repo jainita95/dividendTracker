@@ -241,7 +241,7 @@ def predict_profile():
                     df_input['isActiveMemberFactor'][ind] = True
                 if((df_threshold.loc[df_threshold['contributing_factor'] == 'isErrorLogsFactor', 'min_threshold'].iloc[0]) <= no_of_error_logs <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isErrorLogsFactor', 'max_threshold'].iloc[0])):
                     df_input['isErrorLogsFactor'][ind] = True
-
+        df_input.rename(columns={"# Error logs": "Errorlogs"}, inplace=True)
         json_data_path = os.path.join(os.getcwd(), "temp_csv.csv")
         df_input.to_csv('temp_csv.csv')
         model_bucket.blob('temp_csv.csv').upload_from_filename("temp_csv.csv")
