@@ -142,8 +142,9 @@ def train_model_and_store():
     dict_df['df_inward'] = df_file_inward.to_json()
     dependent_variable_name = "Exited"
     if len(filepaths_inward) > 0:
-        df = pd.concat((pd.read_csv(f) for f in filepaths_inward)) 
-        #print(df.head())
+        df_input = pd.concat((pd.read_csv(f) for f in filepaths_inward)) 
+        df_input.head()
+        df=df_input[['CustomerId','Surname','CreditScore','Geography','Gender','Age','Tenure','Balance','NumOfProducts','HasCrCard','IsActiveMember','EstimatedSalary','# Error logs','Exited']].copy()
 
         #dataprep
         df_prep = df.copy()
