@@ -245,7 +245,7 @@ def train_model_and_store():
         list_of_tuples = list(zip(contributing_factor, min_threshold,max_threshold))
         df_thresholds = pd.DataFrame(list_of_tuples, 
                       columns = ['contributing_factor', 'min_threshold','max_threshold'])
-        df_thresholds_path = os.path.join(os.getcwd(), "threshold.pkl")
+        df_thresholds_path = os.path.join(os.path.dirname(__file__), "threshold.pkl")
         with open(df_thresholds_path, 'wb')as f:
             pickle.dump(df_thresholds_path,f)
-        model_bucket.blob('threshold.pkl').upload_from_filename("threshold.pkl")
+        model_bucket.blob('threshold.pkl').upload_from_filename(df_thresholds_path)
