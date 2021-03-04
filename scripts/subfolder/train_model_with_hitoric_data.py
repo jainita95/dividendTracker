@@ -238,3 +238,13 @@ def train_model_and_store():
         with open(json_data_path, 'wb') as f:
             pickle.dump(logr_model,f)
         model_bucket.blob('model.pkl').upload_from_filename(json_data_path)
+        contributing_factor = ['isCreditScoreFactor','isAgeFactor','isBalanceFactor','isNumOfProductsFactor','isHasCrCardFactor','isActiveMemberFactor','isErrorLogsFactor']
+        min_threshold = [0,40,50000,3,0,0,6]
+        max_threshold = [450,65,100000,4,0,0,10]
+        list_of_tuples = list(zip(contributing_factor, min_threshold,max_threshold))
+        df_thresholds = pd.DataFrame(list_of_tuples, 
+                      columns = ['contributing_factor', 'min_threshold','max_threshold'])
+        df_thresholds_path = os.path.join(os.getcwd(), "threshold.pkl")
+        with open(df_thresholds_path, 'wb')as f:
+            pickle.dump(df_thresholds_path,f)
+        model_bucket.blob('threshold.pkl').upload_from_filename("threshold.pkl")
