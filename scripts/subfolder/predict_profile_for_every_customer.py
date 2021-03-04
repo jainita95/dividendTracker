@@ -69,8 +69,7 @@ def predict_profile():
     model_bucket = 'hackathon-21-customer-profile-details-temp'
     storage_client = storage.Client()
     model_bucket = storage_client.bucket(model_bucket)
-    credentials = service_account.Credentials.from_service_account_file(
-    'hackathon-wpb-1d59b3035965.json')
+    
     filepaths_inward = []
     fnames_inward = []
     updated_inward = []
