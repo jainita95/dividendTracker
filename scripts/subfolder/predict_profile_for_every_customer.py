@@ -142,9 +142,10 @@ def predict_profile():
         raise ValueError("No Content to process")
     dict_df['df_inward'] = df_file_inward.to_json()
     dependent_variable_name = "Exited"
-    pickle_blob = model_bucket.blob("model.pkl").download_to_filename("jsonTemp2.pkl")
-    pickle_blob = pickle.load(open('jsonTemp2.pkl','rb'))
-    df_thresholds_path = os.path.join(os.getcwd(), "threshold.pkl")
+    pickle_path = os.path.join(os.path.dirname(__file__), "jsonTemp2.pkl")
+    pickle_blob = model_bucket.blob("model.pkl").download_to_filename(pickle_path)
+    pickle_blob = pickle.load(open(pickle_path,'rb'))
+    df_thresholds_path = os.path.join(os.path.dirname(__file__), "threshold.pkl")
     pickle_threshold = model_bucket.blob("threshold.pkl").download_to_filename(df_thresholds_path)
     pickle_threshold = pickle.load(open(df_thresholds_path,'rb'))
     df_threshold = pickle_threshold
@@ -241,7 +242,7 @@ def predict_profile():
                 if((df_threshold.loc[df_threshold['contributing_factor'] == 'isErrorLogsFactor', 'min_threshold'].iloc[0]) <= no_of_error_logs <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isErrorLogsFactor', 'max_threshold'].iloc[0])):
                     df_input['isErrorLogsFactor'][ind] = True
         df_input.rename(columns={"# Error logs": "Errorlogs"}, inplace=True)
-        json_data_path = os.path.join(os.getcwd(), "temp_csv.csv")
-        df_input.to_csv('temp_csv.csv')
-        model_bucket.blob('temp_csv.csv').upload_from_filename("temp_csv.csv")
+        json_data_path = os.path.join(os.path.dirname(__file__), "temp_csv.csv")
+        df_input.to_csv(json_data_path)
+        model_bucket.blob('temp_csv.csv').upload_from_filename(json_data_path)
 
