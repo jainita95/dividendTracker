@@ -66,7 +66,7 @@ def predict_profile():
     source_bucket = storage_client.bucket(source_bucket)
     credentials=service_account.Credentials.from_service_account_info(
            Variable.get("key",deserialize_json=True))
-    model_bucket = 'hackathon-21-customer-profile-details-historic-data'
+    model_bucket = 'hackathon-21-customer-profile-details-temp'
     storage_client = storage.Client()
     model_bucket = storage_client.bucket(model_bucket)
     
