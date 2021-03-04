@@ -66,6 +66,8 @@ def train_model_and_store():
     source_bucket = 'hackathon-21-customer-profile-details-historic-data'
     storage_client = storage.Client()
     source_bucket = storage_client.bucket(source_bucket)
+    model_bucket = 'hackathon-21-customer-profile-details-temp'
+    model_bucket = storage_client.bucket(model_bucket)
     filepaths_inward = []
     fnames_inward = []
     updated_inward = []
@@ -235,4 +237,4 @@ def train_model_and_store():
         json_data_path = os.path.join(os.path.dirname(__file__), 'jsonTemp.pkl')
         with open(json_data_path, 'wb') as f:
             pickle.dump(logr_model,f)
-        source_bucket.blob('model.pkl').upload_from_filename(json_data_path)
+        model_bucket.blob('model.pkl').upload_from_filename(json_data_path)
