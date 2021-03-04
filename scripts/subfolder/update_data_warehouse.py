@@ -30,273 +30,129 @@ def update_data_warehouse():
     from pandas.io.json import json_normalize
     import math
     from google.cloud import storage
-
-    def date_to_months(dt_start, dt_end):
-        one_day = timedelta(1)
-        start_dates = [dt_start]
-        end_dates = []
-        today = dt_start
-        while today <= dt_end:
-            #print(today)
-            tomorrow = today + one_day
-            if tomorrow.month != today.month:
-                start_dates.append(tomorrow)
-                end_dates.append(today)
-            today = tomorrow
-
-        end_dates.append(dt_end)
-        return start_dates,end_dates
-
-    def weird_division(n, d):
-        return n / d if d else 0
-
-    def dividend_probability_calculator():  
-        credentials=service_account.Credentials.from_service_account_info(
+    import numpy as np
+    import pandas as pd
+    from sklearn.linear_model import LogisticRegression  
+    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.svm import SVC
+    from sklearn.tree import DecisionTreeClassifier 
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import train_test_split
+    from sklearn import preprocessing
+    from sklearn.model_selection import KFold
+    from sklearn.model_selection import cross_val_score, GridSearchCV,train_test_split,cross_val_score
+    import itertools
+    from sklearn.preprocessing import PolynomialFeatures
+    from sklearn.neighbors import LocalOutlierFactor # çok değişkenli aykırı gözlem incelemesi
+    from sklearn.preprocessing import scale,StandardScaler, MinMaxScaler,Normalizer,RobustScaler
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import classification_report
+    from sklearn.metrics import  accuracy_score, f1_score, precision_score,confusion_matrix, recall_score, roc_auc_score
+    from sklearn.ensemble import RandomForestClassifier,AdaBoostClassifier,GradientBoostingClassifier
+    import warnings
+    from google.cloud import storage
+    from google.oauth2 import service_account
+    from sklearn.preprocessing import LabelEncoder
+    from sklearn.preprocessing import StandardScaler
+    import pickle
+    import os
+    import cloudstorage as gcs
+    from google.cloud import bigquery
+    import json
+    warnings.filterwarnings("ignore", category=DeprecationWarning) 
+    warnings.filterwarnings("ignore", category=FutureWarning) 
+    warnings.filterwarnings("ignore", category=UserWarning) 
+    source_bucket = 'hackathon-21-customer-profile-details-temp'
+    storage_client = storage.Client()
+    source_bucket = storage_client.bucket(source_bucket)
+    credentials=service_account.Credentials.from_service_account_info(
                Variable.get("key",deserialize_json=True))
-
-        destination_bucket_name = 'dividend_declarations_hackathon'
-        storage_client = storage.Client()
-        destination_bucket = storage_client.bucket(destination_bucket_name)
-
-        project_id = 'hackathon-wpb'
-        table_id = 'hackathon-wpb.customer_relations.customer_dividend_malaysia'
-        query_string = """
-           SELECT * 
-           FROM hackathon-wpb.customer_relations.customer_dividend_malaysia"""
-
-        table_schema=[{'name': 'Ticker', 'type': 'STRING', 'mode': 'REQUIRED'}, 
-                     {'name': 'Mic', 'type': 'STRING', 'mode': 'REQUIRED'},
-                     {'name': 'Contacts', 'type': 'RECORD', 'mode': 'REPEATED', 'fields': [
-                         {'name': 'Name', 'type': 'STRING', 'mode': 'NULLABLE'},
-                         {'name': 'email', 'type': 'STRING', 'mode': 'NULLABLE'}]},
-                     {'name': 'Dividend', 'type': 'RECORD', 'mode': 'REPEATED', 'fields': [
-                         {'name': 'DeclarationYear', 'type': 'STRING', 'mode': 'NULLABLE'},
-                         {'name': 'DeclaratioMonth', 'type': 'STRING', 'mode': 'NULLABLE'},
-                         {'name': 'DeclarationDate', 'type': 'STRING', 'mode': 'NULLABLE'}]},
-                     {'name': 'RecentDeclarationDate', 'type': 'DATE', 'mode': 'NULLABLE'},
-                     {'name': 'NextPayableDate', 'type': 'DATE', 'mode': 'NULLABLE'},
-                     {'name': 'ExpectedStartDate', 'type': 'DATE', 'mode': 'NULLABLE'},
-                     {'name': 'ExpectedEndDate', 'type': 'DATE', 'mode': 'NULLABLE'},
-                     {'name': 'LastRunDate', 'type': 'DATE', 'mode': 'NULLABLE'},
-                     {'name': 'ProbabilityNextMonthDeclaration', 'type': 'NUMERIC', 'mode': 'NULLABLE'},
-                     {'name': 'Period', 'type': 'INTEGER', 'mode': 'NULLABLE'}]
-
-        project_id = 'hackathon-wpb'
-        dataset_id = 'customer_relations'
-        table_id = 'customer_dividend_malaysia'
-
-        client  = bigquery.Client(project = project_id)
-        dataset  = client.dataset(dataset_id)
-        table = dataset.table(table_id)
-
-        job_config = bigquery.LoadJobConfig()
-        job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
-        job_config.schema = table_schema
-        job_config.write_disposition = 'WRITE_TRUNCATE'
+    filepaths_inward = []
+    fnames_inward = []
+    updated_inward = []
+    dict_df = {}
 
 
+    for file in list(source_bucket.list_blobs()):
+        file_path='gs://{}/{}'.format(file.bucket.name, file.name)
+        if(file.name.endswith(".csv")):
+            filepaths_inward.append(file_path)
+            fnames_inward.append(file.name)
+            updated_inward.append(file.updated)
+    print(filepaths_inward)
 
+    df_file_inward = pd.DataFrame(fnames_inward, columns=['fname'])
+    df_file_inward['filepath'] = filepaths_inward
+    df_file_inward['updated'] = pd.to_datetime(updated_inward)
+    df_file_inward['updated'] = df_file_inward['updated'].dt.date
+    if df_file_inward.empty:
+        raise ValueError("No Content to process")
+    dict_df['df_inward'] = df_file_inward.to_json()
+    dependent_variable_name = "Exited"
+    table_schema=[{'name': 'CustomerId', 'type': 'STRING', 'mode': 'REQUIRED'}, 
+                         {'name': 'Surname', 'type': 'STRING', 'mode': 'NULLABLE'},
+                         {'name': 'RM_ID', 'type': 'STRING', 'mode': 'NULLABLE'},
+                         {'name': 'RM_mailId', 'type': 'STRING', 'mode': 'NULLABLE'},
+                             {'name': 'CreditScore', 'type': 'FLOAT', 'mode': 'NULLABLE'},
+                             {'name': 'Geography', 'type': 'STRING', 'mode': 'NULLABLE'},
+                             {'name': 'Gender', 'type': 'STRING', 'mode': 'NULLABLE'},
+                         {'name': 'Age', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                         {'name': 'Tenure', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                         {'name': 'Balance', 'type': 'FLOAT', 'mode': 'NULLABLE'},
+                         {'name': 'NumOfProducts', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                         {'name': 'HasCrCard', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                         {'name': 'IsActiveMember', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                         {'name': 'EstimatedSalary', 'type': 'FLOAT', 'mode': 'NULLABLE'},
+                 {'name': 'Errorlogs', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                 {'name': 'Exited', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                 {'name': 'Contacts_Phone', 'type': 'STRING', 'mode': 'NULLABLE'},
+                 {'name': 'Contacts_email', 'type': 'STRING', 'mode': 'NULLABLE'},
+                 {'name': 'isCreditScoreFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
+                 {'name': 'isAgeFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
+                 {'name': 'isBalanceFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
+                 {'name': 'isNumOfProductsFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
+                 {'name': 'isHasCrCardFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
+                 {'name': 'isActiveMemberFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
+                 {'name': 'isErrorLogsFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'}]
 
-        dataframe_complete = pdgbq.read_gbq(query = query_string,project_id=project_id)
-        dataframe=dataframe_complete
-        print(dataframe.dtypes)
-        print(len(dataframe))
-        base = datetime.today().date()
-        start_date = base+timedelta(days=30)
-        end_date = base+timedelta(days=70)
-        df_companies = pd.DataFrame(dataframe_complete.Ticker.unique())
-        df_companies.rename(columns = {0:'Ticker'}, inplace = True) 
-        df_companies['ProbabilityNextMonthDeclaration'] = 0.0
-        df_companies['ExpectedStartDate']=''
-        df_companies['ExpectedEndDate']=''
-        convert_dict = {'Ticker': str, 
-                        'ProbabilityNextMonthDeclaration': float,
-                        'ExpectedStartDate': np.datetime64,
-                        'ExpectedEndDate': np.datetime64
-                       } 
+    project_id = 'hackathon-wpb'
+    dataset_id = 'customer_profiles'
+    table_id = 'customer_profiles_europe'
 
-        df_companies = df_companies.astype(convert_dict)
-        for ind in df_companies.index:
-             company_name = df_companies['Ticker'][ind]
-             df_company_temp = pd.DataFrame(dataframe.loc[dataframe['Ticker'] == company_name])
-             df_company_temp_list = df_company_temp['Dividend']
-             index = df_company_temp_list.index
-             try:
-                 df_company_temp_2=json_normalize(df_company_temp_list[index[0]])
-                 df = pd.DataFrame({'year': df_company_temp_2['DeclarationYear'],
-                                    'month': df_company_temp_2['DeclaratioMonth'],
-                                    'day': df_company_temp_2['DeclarationDate']})
-                 df_company_temp_2['Date']=pd.to_datetime(df)
-                 if(company_name == 'CIMB.XKLS'):
-                        print(df_company_temp_2)
-                 df_company_temp_2.drop_duplicates(subset=['DeclarationYear', 'DeclaratioMonth', 'DeclarationDate'], inplace=True)
-                 if(company_name == 'CIMB.XKLS'):
-                        print(df_company_temp_2)
-             except:
-                 continue
-             total_declarations = len(df_company_temp_2['DeclarationYear'].unique())
-             recent_years=[]
-             non_recent_years=[]
-             count_recent = 0
-             count_recent_two_years = 0
-             number_of_recent_years = 0
-             number_of_non_recent_years = 0
-             count_non_recent = 0
-             base_date_minus_2 = base-timedelta(days=730)
-             base_date_minus_5 = base-timedelta(days=1825)
-             year_considered = []
-             for ind2 in df_company_temp_2.index:
-                    months = dataframe.loc[dataframe['Ticker'] == company_name, 'Period']
-                    if(not(math.isnan(months))):
-                        start_date = base+timedelta(days=int(months)*30)
-                        end_date = start_date+timedelta(days=40)
-                    start_dates,end_dates = date_to_months(start_date, end_date)    
-                    date_temp = df_company_temp_2['Date'][ind2]
-                    if(company_name == 'CIMB.XKLS'):
-                        print(date_temp)
-                    if(base_date_minus_2 <= date_temp < base):
-                        recent_years.append(date_temp.year)
-                    elif(base_date_minus_5 <= date_temp < base_date_minus_2):
-                        recent_years.append(date_temp.year)
-                    else:
-                        non_recent_years.append(date_temp.year)
-                    out_fmt = '%Y-%m-%d'
-                    #for every month check if previous declaration month/date falls in the range
-                    for start, end in zip(start_dates,end_dates):
-                        year = start.year
-                        if(company_name == 'CIMB.XKLS'):
-                            print('base')
-                            print(base)
-                            print('start')
-                            print(start)
-                            print('end')
-                            print(end)
-                        try:
-                            if start.replace(year=year) <= date_temp.replace(year=year) <= end.replace(year=year):
-                                if(not date_temp.year in year_considered):
-                                    if(base_date_minus_2 <= date_temp < base):
-                                        count_recent_two_years=count_recent_two_years+1
-                                        if(company_name == 'CIMB.XKLS'):
-                                            print(date_temp)
-                                            print("count_recent incremented")
-                                    elif(base_date_minus_5 <= date_temp < base_date_minus_2):
-                                        count_recent=count_recent+1
-                                        if(company_name == 'CIMB.XKLS'):
-                                            print(date_temp)
-                                            print("count_recent incremented")
-                                    elif(date_temp <= base_date_minus_5):
-                                        count_non_recent=count_non_recent+1
-                                        if(company_name == 'CIMB.XKLS'):
-                                            print(date_temp)
-                                            print("count_non_recent incremented")
-                                    year_considered.append(date_temp.year)
-                        except:
-                            #to handle 29th feb
-                            #print(date_temp)
-                            one_day = timedelta(1)
-                            date_temp = date_temp - one_day
-                            if start.replace(year=year) <= date_temp.replace(year=year) <= end.replace(year=year):
-                                if(not date_temp.year in year_considered):
-                                    if(base_date_minus_2 <= date_temp < base):
-                                        count_recent_two_years=count_recent_two_years+1
-                                        if(company_name == 'UEMS.XKLS'):
-                                            print(date_temp)
-                                            print("count_recent incremented")
-                                    elif(base_date_minus_5 <= date_temp < base_date_minus_2):
-                                        count_recent=count_recent+1
-                                        if(company_name == 'UEMS.XKLS'):
-                                            print(date_temp)
-                                            print("count_recent incremented")
-                                    elif(date_temp < base_date_minus_5):
-                                        count_non_recent=count_non_recent+1
-                                        #print("count_non_recent incremented")
-                                        year_considered.append(date_temp.year)
-             number_of_latest_years=2 
-             number_of_recent_years=3
-            #(pd.Series(recent_years)).nunique()
-             number_of_non_recent_years=(pd.Series(non_recent_years)).nunique()
-             probability = ((3*weird_division(count_recent_two_years,number_of_latest_years))+(2*weird_division(count_recent,number_of_recent_years))+(weird_division(count_non_recent,number_of_non_recent_years)))/6
-             if(company_name == 'CIMB.XKLS'):
-                 print(count_recent_two_years)
-                 print(number_of_latest_years)
-                 print(count_recent)
-                 print(number_of_recent_years)
-                 print(count_non_recent)
-                 print(non_recent_years)
-                 print(number_of_non_recent_years)
-                 print(probability)
-             df_companies['ProbabilityNextMonthDeclaration'][ind] = round(probability, 3)
-             df_companies['ExpectedStartDate'][ind] = np.datetime64(start_date)
-             df_companies['ExpectedEndDate'][ind] = np.datetime64(end_date)
-             dataframe.loc[dataframe['Ticker'] == company_name, 'ProbabilityNextMonthDeclaration'] = str(probability)
-             dataframe.loc[dataframe['Ticker'] == company_name, 'ExpectedStartDate'] = np.datetime64(start_date)
-             dataframe.loc[dataframe['Ticker'] == company_name, 'ExpectedEndDate'] = np.datetime64(end_date)
-        dataframe_complete.drop(['ProbabilityNextMonthDeclaration', 'ExpectedStartDate', 'ExpectedEndDate', 'LastRunDate'], axis = 1, inplace = True) 
-        df_update = pd.merge(dataframe_complete, df_companies, left_on='Ticker', right_on='Ticker')
-        df_update['LastRunDate'] = np.datetime64(base)
-        df_update['NextPayableDate'] = df_update['NextPayableDate'].dt.strftime('%Y-%m-%d')
-        df_update['ExpectedStartDate'] = df_update['ExpectedStartDate'].dt.strftime('%Y-%m-%d')
-        df_update['ExpectedEndDate'] = df_update['ExpectedEndDate'].dt.strftime('%Y-%m-%d')
-        df_update['LastRunDate'] = df_update['LastRunDate'].dt.strftime('%Y-%m-%d')
-        df_update['RecentDeclarationDate'] = df_update['RecentDeclarationDate'].dt.strftime('%Y-%m-%d')
-        json_data = df_update.to_json(orient="records")
+    client  = bigquery.Client(project = project_id)
+    dataset  = client.dataset(dataset_id)
+    table = dataset.table(table_id)
+
+    job_config = bigquery.LoadJobConfig()
+    job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
+    job_config.schema = table_schema
+    job_config.write_disposition = 'WRITE_TRUNCATE'
+
+    if len(filepaths_inward) > 0:
+        df = pd.concat((pd.read_csv(f) for f in filepaths_inward)) 
+        df.drop(['Unnamed: 0', 'RowNumber'], axis=1, inplace=True)
+        convert_dict = {'Age': int, 
+                            'Tenure': int,
+                        'NumOfProducts': int,
+                        'HasCrCard': int,
+                        'IsActiveMember': int,
+                        'Errorlogs': int,
+                        'CustomerId': int,
+                        'RM_ID': int,
+                        'Contact_Phone': int
+                           } 
+
+        df = df.astype(convert_dict)
+        convert_dict = {
+                        'CustomerId': str,
+                        'RM_ID': str,
+                        'Contact_Phone': str
+                           }
+
+        df = df.astype(convert_dict)
+        df.rename(columns={"Contact_Phone": "Contacts_Phone"}, inplace=True)
+        df.rename(columns={"Contact_MailId": "Contacts_email"}, inplace=True)
+        json_data = df.to_json(orient="records")
         json_object = json.loads(json_data)
-        job = client.load_table_from_json(json_object, table, job_config = job_config)  # Make an API request.
-        filename = 'customer_dividend_malaysia_probability_update_'+str(datetime.now())+'.json'
-        blob = destination_bucket.blob(filename)
-        blob.upload_from_string(
-        data=json.dumps(json_object),
-        content_type='application/json')
-        job.result()
-        count_mails = 0   #remove for actual code
-        for ind3 in df_companies.index:
-            company_name = df_companies['Ticker'][ind3]
-            print(company_name)
-            print(ind3)
-            probability = df_companies['ProbabilityNextMonthDeclaration'][ind3]
-            expected_start_date = df_update.loc[dataframe['Ticker'] == company_name, 'ExpectedStartDate'].iloc[0]
-            expected_end_date = df_update.loc[dataframe['Ticker'] == company_name, 'ExpectedEndDate'].iloc[0]
-            if(float(probability) > 0.9 and count_mails < 10):
-                df_contacts_temp = pd.DataFrame(dataframe.loc[dataframe['Ticker'] == company_name])
-                df_contacts_temp_list = df_company_temp['Contacts']
-                index = df_contacts_temp_list.index
-                df_contacts=json_normalize(df_contacts_temp_list[index[0]])
-                contacts = df_contacts.drop_duplicates(subset=['email'], keep = 'last')
-                html_string= None
-                with open('/opt/bitnami/airflow/dags/git-github-com-jainita95-dividend-tracker-git/EmailTemplateUpcomingDividend.html', 'r') as f:
-                    html_string = f.read()
-                html_string=html_string.format(code=company_name,startDate=expected_start_date,endDate=expected_end_date,probability=math.ceil(probability*100))
-                name = []
-                emails= []
-                for ind4 in contacts.index:
-                    name_contact = contacts['Name'][ind4]
-                    email = contacts['email'][ind4]
-                    name.append(name_contact)
-                    emails.append(To(email))
-                message = Mail(
-                                from_email='jainita95@outlook.com',
-                                to_emails=emails,
-                                subject = "Notice: An Upcoming Dividend Declaration cited for "+ company_name,
-                                html_content=html_string)
-                with open('/opt/bitnami/airflow/dags/git-github-com-jainita95-dividend-tracker-git/hsbcLogo.png', 'rb') as f:
-                    data = f.read()
-                    f.close()
-                encoded = base64.b64encode(data).decode()    
-                attachment = Attachment()
-                attachment.file_content = FileContent(encoded)
-                attachment.file_type = FileType('image/png')
-                attachment.file_name = FileName('hsbcLogo.png')
-                attachment.disposition = Disposition('inline')
-                attachment.content_id = ContentId('hsbclogo')
-                message.add_attachment(attachment)
-                try:
-                    sg = SendGridAPIClient(Variable.get("sendgridapikey"))
-                    response = sg.send(message)
-                    count_mails = count_mails + 1
-                    #print(response.status_code)
-                    #print(response.body)
-                    #print(response.headers)
-                except Exception as e:
-                    print(e.message)
-    
-    dividend_probability_calculator()
+        job = client.load_table_from_json(json_object, table, job_config = job_config)
+        print(job.result())
