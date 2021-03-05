@@ -75,7 +75,7 @@ def update_data_warehouse():
 
     for file in list(source_bucket.list_blobs()):
         file_path='gs://{}/{}'.format(file.bucket.name, file.name)
-        if(file.name.endswith(".csv")):
+        if(file.name.endswith("temp_csv.csv")):
             filepaths_inward.append(file_path)
             fnames_inward.append(file.name)
             updated_inward.append(file.updated)
