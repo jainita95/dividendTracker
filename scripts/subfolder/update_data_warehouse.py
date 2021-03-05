@@ -176,7 +176,7 @@ def update_data_warehouse():
         subject='Customer Profile Details',
         html_content=html_string)
         try:
-            sg = SendGridAPIClient('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')
+            sg = SendGridAPIClient(Variable.get("sendgridapikeycp"))
             response = sg.send(message)
             print(response.status_code)
             print(response.body)
