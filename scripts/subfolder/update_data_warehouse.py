@@ -107,13 +107,13 @@ def update_data_warehouse():
                  {'name': 'Exited', 'type': 'INTEGER', 'mode': 'NULLABLE'},
                  {'name': 'Contacts_Phone', 'type': 'STRING', 'mode': 'NULLABLE'},
                  {'name': 'Contacts_email', 'type': 'STRING', 'mode': 'NULLABLE'},
-                 {'name': 'isCreditScoreFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
-                 {'name': 'isAgeFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
-                 {'name': 'isBalanceFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
-                 {'name': 'isNumOfProductsFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
-                 {'name': 'isHasCrCardFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
-                 {'name': 'isActiveMemberFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'},
-                 {'name': 'isErrorLogsFactor', 'type': 'BOOLEAN', 'mode': 'NULLABLE'}]
+                 {'name': 'isCreditScoreFactor', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                 {'name': 'isAgeFactor', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                 {'name': 'isBalanceFactor', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                 {'name': 'isNumOfProductsFactor', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                 {'name': 'isHasCrCardFactor', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                 {'name': 'isActiveMemberFactor', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+                 {'name': 'isErrorLogsFactor', 'type': 'INTEGER', 'mode': 'NULLABLE'}]
 
     project_id = 'hackathon-wpb'
     dataset_id = 'customer_profiles'
@@ -156,3 +156,30 @@ def update_data_warehouse():
         json_object = json.loads(json_data)
         job = client.load_table_from_json(json_object, table, job_config = job_config)
         print(job.result())
+        
+    import requests
+    from sendgrid import SendGridAPIClient
+    from sendgrid.helpers.mail import Mail
+    from string import Template
+    from sendgrid.helpers.mail import To,Attachment,FileContent,FileType,FileName,Disposition,ContentId
+    distinct_rm = pd.DataFrame(df.RM_ID.unique())
+    print(distinct_rm)
+    for ind in distinct_rm.index:
+        rm_id = distinct_rm[0][ind]
+        count_number_of_silent_cin_under_rm = len(df[(df.RM_ID == rm_id) & (df.Exited == 1)]) 
+        print(count_number_of_silent_cin_under_rm)
+        html_string='<strong>You have "{count}" customers under your profile who are Silent Customers</strong><p>Refer https://datastudio.google.com/reporting/06d65aa1-9da3-40bc-96c6-b8ad91ebe804/page/VA74B for further details.<p>'
+        html_string=html_string.format(count=count_number_of_silent_cin_under_rm)
+        message = Mail(
+        from_email='shivani153mankar@gmail.com',
+        to_emails='shivani153mankar@gmail.com',
+        subject='Customer Profile Details',
+        html_content=html_string)
+        try:
+            sg = SendGridAPIClient('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')
+            response = sg.send(message)
+            print(response.status_code)
+            print(response.body)
+            print(response.headers)
+        except Exception as e:
+            print(e.message)
