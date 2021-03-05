@@ -208,13 +208,13 @@ def predict_profile():
         y_pred = logr_model.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
         df_input[dependent_variable_name] = y_pred
-        df_input['isCreditScoreFactor']=False
-        df_input['isAgeFactor']=False
-        df_input['isBalanceFactor']=False
-        df_input['isNumOfProductsFactor']=False
-        df_input['isHasCrCardFactor']=False
-        df_input['isActiveMemberFactor']=False
-        df_input['isErrorLogsFactor']=False
+        df_input['isCreditScoreFactor']=0
+        df_input['isAgeFactor']=0
+        df_input['isBalanceFactor']=0
+        df_input['isNumOfProductsFactor']=0
+        df_input['isHasCrCardFactor']=0
+        df_input['isActiveMemberFactor']=0
+        df_input['isErrorLogsFactor']=0
         for ind in df_input.index:
             isExited = df_input[dependent_variable_name][ind]
             customer_id = df_input['CustomerId'][ind]
@@ -228,21 +228,54 @@ def predict_profile():
             if(isExited==1):
                 if(credit_score < df_threshold.loc[df_threshold['contributing_factor'] == 'isCreditScoreFactor', 'max_threshold'].iloc[0]):
                     print(df_input.loc[df_input['CustomerId'] == 'customer_id', 'isCreditScoreFactor'])
-                    df_input.loc[df_input['CustomerId'] == 'customer_id', 'isCreditScoreFactor'] = True
+                    df_input.loc[df_input['CustomerId'] == 'customer_id', 'isCreditScoreFactor'] = 1
                 if((df_threshold.loc[df_threshold['contributing_factor'] == 'isAgeFactor', 'min_threshold'].iloc[0]) <= age <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isAgeFactor', 'max_threshold'].iloc[0])):
-                    df_input['isAgeFactor'][ind] = True
+                    df_input['isAgeFactor'][ind] = 1
                 if((df_threshold.loc[df_threshold['contributing_factor'] == 'isBalanceFactor', 'min_threshold'].iloc[0]) <= balance <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isBalanceFactor', 'max_threshold'].iloc[0])):
-                    df_input['isBalanceFactor'][ind] = True
+                    df_input['isBalanceFactor'][ind] = 1
                 if((df_threshold.loc[df_threshold['contributing_factor'] == 'isNumOfProductsFactor', 'min_threshold'].iloc[0]) <= no_of_products <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isNumOfProductsFactor', 'max_threshold'].iloc[0])):
-                    df_input['isNumOfProductsFactor'][ind] = True
+                    df_input['isNumOfProductsFactor'][ind] = 1
                 if((df_threshold.loc[df_threshold['contributing_factor'] == 'isHasCrCardFactor', 'min_threshold'].iloc[0]) <= has_credit_card <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isHasCrCardFactor', 'max_threshold'].iloc[0])):
-                    df_input['isHasCrCardFactor'][ind] = True
+                    df_input['isHasCrCardFactor'][ind] = 1
                 if((df_threshold.loc[df_threshold['contributing_factor'] == 'isActiveMemberFactor', 'min_threshold'].iloc[0]) <= is_active_member <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isActiveMemberFactor', 'max_threshold'].iloc[0])):
-                    df_input['isActiveMemberFactor'][ind] = True
+                    df_input['isActiveMemberFactor'][ind] = 1
                 if((df_threshold.loc[df_threshold['contributing_factor'] == 'isErrorLogsFactor', 'min_threshold'].iloc[0]) <= no_of_error_logs <= (df_threshold.loc[df_threshold['contributing_factor'] == 'isErrorLogsFactor', 'max_threshold'].iloc[0])):
-                    df_input['isErrorLogsFactor'][ind] = True
+                    df_input['isErrorLogsFactor'][ind] = 1
         df_input.rename(columns={"# Error logs": "Errorlogs"}, inplace=True)
         json_data_path = os.path.join(os.path.dirname(__file__), "temp_csv.csv")
         df_input.to_csv(json_data_path)
         model_bucket.blob('temp_csv.csv').upload_from_filename(json_data_path)
+        
+        #counts-pie
+        count_isCreditScoreFactor = len(df_input.loc[df_input['isCreditScoreFactor'] == 1])
+        count_isAgeFactor = len(df_input.loc[df_input['isAgeFactor'] == 1])
+        count_isBalanceFactor = len(df_input.loc[df_input['isBalanceFactor'] == 1])
+        count_isNumOfProductsFactor = len(df_input.loc[df_input['isNumOfProductsFactor'] == 1])
+        count_isHasCrCardFactor = len(df_input.loc[df_input['isHasCrCardFactor'] == 1])
+        count_isActiveMemberFactor = len(df_input.loc[df_input['isActiveMemberFactor'] == 1])
+        count_isErrorLogsFactor = len(df_input.loc[df_input['isErrorLogsFactor'] == 1])
+        contributing_factor = ['isCreditScoreFactor','isAgeFactor','isBalanceFactor','isNumOfProductsFactor','isHasCrCardFactor','isActiveMemberFactor','isErrorLogsFactor']
+        count = [count_isCreditScoreFactor,count_isAgeFactor,count_isBalanceFactor,count_isNumOfProductsFactor,count_isHasCrCardFactor,count_isActiveMemberFactor,count_isErrorLogsFactor]
+        list_of_tuples = list(zip(contributing_factor, count))
+        df_contributing_factors = pd.DataFrame(list_of_tuples, 
+                      columns = ['Contributing factor', 'Count'])
+        json_data_path_contributing_factors = #os.path.join(os.getcwd(), "counts_pie.csv")
+        os.path.join(os.path.dirname(__file__), 'counts_pie.csv')
+        df_contributing_factors.to_csv(json_data_path_contributing_factors, index=False)
+        model_bucket.blob('counts_pie.csv').upload_from_filename(json_data_path_contributing_factors)
+
+        #dailycounts
+        file_path_daily_counts = ['gs://hackathon-21-customer-profile-details-temp/day_threshold.csv']
+        now = datetime.now()
+        dt_string = now.strftime("%m/%d/%Y")
+        df_dailycounts = pd.concat((pd.read_csv(f) for f in file_path_daily_counts))
+        print(df_dailycounts)
+        print(df_dailycounts.dtypes)
+        df_dailycounts.loc[len(df_dailycounts.index)] = [dt_string,count_isCreditScoreFactor,count_isAgeFactor,count_isBalanceFactor,count_isNumOfProductsFactor,count_isHasCrCardFactor,count_isActiveMemberFactor,count_isErrorLogsFactor] 
+        json_data_path_dailycounts = #os.path.join(os.getcwd(), "day_threshold.csv")
+        os.path.join(os.path.dirname(__file__), 'day_threshold.csv.csv')
+        df_dailycounts.dropna(inplace=True)
+        print(df_dailycounts)
+        df_dailycounts.to_csv(json_data_path_dailycounts, index=False)
+        model_bucket.blob('day_threshold.csv').upload_from_filename(json_data_path_dailycounts)
 
